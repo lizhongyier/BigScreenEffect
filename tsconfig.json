@@ -1,0 +1,40 @@
+{
+    "compilerOptions": {
+        "target": "esnext",
+        "module": "esnext",
+        "strict": true, // js/ts 混用时设为false
+        "jsx": "preserve",
+        "importHelpers": true,
+        "moduleResolution": "node",
+        "experimentalDecorators": true,
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "sourceMap": true,
+        "noImplicitThis": true, // js/ts 混用时设为false
+        "baseUrl": ".",
+         // 要包含的类型声明文件名列表
+        "types": [],
+        "paths": {
+            "@/*": [
+                "src/*"
+            ]
+        },
+        "lib": [
+            "esnext",
+            "dom",
+            "dom.iterable",
+            "scripthost"
+        ]
+    },
+    "include": [
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "src/**/*.vue",
+        "src",
+        "src/typings/*.d.ts",
+        "types"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}
