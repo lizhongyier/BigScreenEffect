@@ -61,6 +61,18 @@ const panelList = ref<PanelItem[]>([
     id: 5,
     tools: "maptalks,three",
   },
+  {
+    name: "3d拉伸地图",
+    img: ref("/src/assets/img/6.png"),
+    id: 6,
+    tools: "maptalks,three",
+  },
+  {
+    name: "楼宇线条",
+    img: ref("/src/assets/img/7.png"),
+    id: 7,
+    tools: "maptalks,three",
+  },
 ]);
 const currentDate = ref(new Date());
 const panelStyle = reactive({

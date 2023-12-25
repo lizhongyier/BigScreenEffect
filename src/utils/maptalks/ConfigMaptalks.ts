@@ -14,6 +14,8 @@ import { GLTFLoader } from "@/three-plugin/jsm/loaders/GLTFLoader.js";
 import lineData from "@/utils/gl/maptalks/geojson/nysubways";
 import { lineLength } from "@/utils/gl/maptalks/geoutil";
 import { uuid } from "@/utils/tools"
+import OutLine from "@/utils/gl/maptalks/Outline"
+import buildings from '@/utils/gl/maptalks/buildings'
 interface Window {
     css2DLabelRenderer: any;
 }
@@ -30,6 +32,15 @@ let maptalksMap: maptalks.Map | null = null;
 let containerDom: HTMLElement | null = null;
 let css2dDomList: any[] = []
 let samllIconList: any[] = []
+let extrudePolygonMateial: any = null
+let extrudePolygons: any[] = []
+let extrudePolygonLinesMaterila: any = null
+let mapMask: any = null
+let maskedLayer: any = null
+let buildingOutLineMaterial: any = null
+let buildingsMaterial: any = null
+let buildingOutLineFeatures: any[] = []
+let buildingOutLineMeshes: any[] = []
 const modelsUrlList: { url: string; name: string }[] = [
     {
         url: "https://storage-dev.heating.ai/v1/storage/object/assets/gltf/qinghe/models/budingBottom.glb",
@@ -69,7 +80,7 @@ export default class ConfigMaptalks {
             //设置地图容器id
             zoom: 16.9, //初始化地图级别
             center: mapCenter, //初始化地图中心点位置
-            minZoom: 13,
+            minZoom: 3,
             // 地图可滚动最大层级
             maxZoom: 24,
             baseLayer: new maptalks.TileLayer("base", {
@@ -102,14 +113,14 @@ export default class ConfigMaptalks {
             hemiLight.position.set(0, 0, 0);
             scene.add(hemiLight);
             const dirLight = new THREE.DirectionalLight(0xffffff); // 设置平行光源
-            dirLight.position.set(10, -82, 10).normalize();
-            dirLight.castShadow = true;
-            dirLight.shadow.camera.top = 2;
-            dirLight.shadow.camera.bottom = -2;
-            dirLight.shadow.camera.left = -2;
-            dirLight.shadow.camera.right = 2;
-            dirLight.shadow.camera.near = 0.1;
-            dirLight.shadow.camera.far = 20;
+            dirLight.position.set(0, -10, 10).normalize();
+            // dirLight.castShadow = true;
+            // dirLight.shadow.camera.top = 2;
+            // dirLight.shadow.camera.bottom = -2;
+            // dirLight.shadow.camera.left = -2;
+            // dirLight.shadow.camera.right = 2;
+            // dirLight.shadow.camera.near = 0.1;
+            // dirLight.shadow.camera.far = 20;
             scene.add(dirLight);
 
             camera.add(new THREE.PointLight("#fff", 4));
@@ -231,6 +242,199 @@ export default class ConfigMaptalks {
         })
     }
 
+
+    initExtrudePolygon() {
+        fetch('./json/henanProvince.json').then((res) => {
+            const position: any = [113.665412, 34.757975]
+            maptalksMap!.setCenter(position)
+            maptalksMap!.setZoom(8.2)
+            res.json().then((geojson => {
+                extrudePolygons.length = 0
+                extrudePolygonMateial = new THREE.MeshPhongMaterial({ color: 0xffffff, emissive: 0x6179E1, specular: 0xDFDFDF, shininess: 32 });
+                extrudePolygonLinesMaterila = new THREE.LineBasicMaterial({ color: "#AFEEEE" });
+                console.log(geojson)
+                this.addExtrudePolygon(geojson)
+            }))
+        })
+        fetch('./json/henanBoundary.json').then((res) => {
+            res.json().then(geojson => {
+                console.log(geojson.features[0].geometry.coordinates[0])
+                mapMask = new maptalks.Polygon(geojson.features[0].geometry.coordinates[0], {
+                    visible: true,
+                    zIndex: 999,
+                    'symbol': [
+                        {
+                            'lineColor': '#AFEEEE',
+                            'lineWidth': 4,
+                            'polygonFillOpacity': 0
+                        },
+                        {
+                            'lineColor': '#404040',
+                            'lineWidth': 2,
+                            'polygonFillOpacity': 0
+                        }
+                    ]
+
+                });
+                this.addMapMask(mapMask)
+            })
+        })
+    }
+
+
+    addMapMask(mapMask: any) {
+        const outline = mapMask.copy();
+        maskedLayer = new maptalks.TileLayer('masked', {
+            'urlTemplate': 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            'subdomains': ['a', 'b', 'c', 'd'],
+        })
+            .setMask(mapMask) // set boundary as the mask to the tilelayer
+            .addTo(maptalksMap!);
+
+        //District's name
+        // const title = new maptalks.Marker(mapMask.getCenter(), {
+        //     'symbol': {
+        //         'textName': 'JiangHan District',
+        //         'textFaceName': 'sans-serif',
+        //         'textSize': 32,
+        //         'textFill': '#1bbc9b',
+        //         'textHaloFill': '#fff',
+        //         'textHaloRadius': 5,
+        //         'textDx': -30
+        //     }
+        // });
+        new maptalks.VectorLayer('maskPolygon', [outline]).addTo(maptalksMap!);
+    }
+
+    addExtrudePolygon(geojson: any) {
+        let idx = 0;
+        geojson.features.slice(0, Infinity).forEach((f: any) => {
+            const lineStrings = [];
+            const geometry = f.geometry;
+            if (geometry.type === "MultiPolygon") {
+                geometry.coordinates.forEach((coordinates: any[]) => {
+                    lineStrings.push(new maptalks.LineString(coordinates[0]));
+                });
+            } else {
+                lineStrings.push(new maptalks.LineString(geometry.coordinates[0]));
+            }
+            const polygon = threeLayer!.toExtrudePolygon(
+                f,
+                { height: -15000 * 1.001, interactive: false, topColor: "#fff" },
+                extrudePolygonMateial
+            );
+            extrudePolygons.push(polygon);
+            lineStrings.forEach((lineString) => {
+                const line = threeLayer!.toLine(
+                    lineString,
+                    { altitude: 1.0002, interactive: false },
+                    extrudePolygonLinesMaterila
+                );
+                extrudePolygons.push(line);
+            });
+            idx++;
+        });
+        threeLayer!.addMesh(extrudePolygons);
+
+    }
+
+    initBuildingOutLine() {
+        const position: any = [13.41055, 52.526702]
+        maptalksMap!.setCenter(position)
+        maptalksMap!.setZoom(17.2)
+        buildingOutLineFeatures.length = 0
+        buildings.forEach((b: any) => {
+            buildingOutLineFeatures = buildingOutLineFeatures.concat(b.features);
+        });
+        buildingsMaterial = new THREE.MeshPhongMaterial({
+            // map: texture,
+            transparent: true,
+            color: 'rgb(0,0,0)'
+        });
+        buildingOutLineMaterial = new THREE.LineBasicMaterial({
+            // 线的颜色
+            color: "rgb(15,159,190)",
+            transparent: true,
+            linewidth: 1,
+            opacity: 0.7,
+            //depthTest: true,
+        });
+        //解决z-flighting
+        buildingOutLineMaterial.polygonOffset = true;
+        buildingOutLineMaterial.depthTest = true;
+        buildingOutLineMaterial.polygonOffsetFactor = 1;
+        buildingOutLineMaterial.polygonOffsetUnits = 1.0;
+
+        buildingOutLineMeshes.length = 0
+
+
+        const heightPerLevel = 10;
+        const polygons: any = buildingOutLineFeatures.map(f => {
+            const polygon = maptalks.GeoJSON.toGeometry(f);
+            const levels = f.properties.levels || 1;
+            polygon.setProperties({
+                height: heightPerLevel * levels,
+            });
+            return polygon;
+        });
+        const mesh = threeLayer!.toExtrudePolygons(polygons, { interactive: false, topColor: '#fff' }, buildingsMaterial);
+        buildingOutLineMeshes.push(mesh);
+        const outLine = new OutLine(mesh, { interactive: false }, buildingOutLineMaterial, threeLayer);
+        buildingOutLineMeshes.push(outLine);
+
+        threeLayer!.addMesh(buildingOutLineMeshes);
+        this.animation()
+
+    }
+    addBuildingOutlineMesh() {
+        if (buildingOutLineMeshes.length && threeLayer) {
+            threeLayer.addMesh(buildingOutLineMeshes);
+        }
+    }
+    removeBuildingOutlineMesh() {
+        if (buildingOutLineMeshes.length && threeLayer) {
+            threeLayer.removeMesh(buildingOutLineMeshes);
+        }
+    }
+    setBuildingColor(color: string) {
+        if (buildingsMaterial) {
+            buildingsMaterial.color.set(color)
+        }
+    }
+    setBuildingOpacity(opacity: number) {
+        if (buildingsMaterial) {
+            buildingsMaterial.opacity = opacity
+        }
+    }
+    setBuildingOutLineColor(lineColor: string) {
+        if (buildingOutLineMaterial) {
+            buildingOutLineMaterial.color.set(lineColor)
+        }
+    }
+    setBuildingOutLineOpacity(lineOpacity: number) {
+        if (buildingOutLineMaterial) {
+            buildingOutLineMaterial.opacity = lineOpacity
+        }
+    }
+
+    setBuildingOutLineAltitude(altitude: number) {
+        if (buildingOutLineMeshes.length) {
+            buildingOutLineMeshes.forEach((mesh) => {
+                mesh.setAltitude(altitude)
+            })
+        }
+    }
+
+    setBuildingOutLineAnimate(animated: boolean) {
+        if (buildingOutLineMeshes.length) {
+            buildingOutLineMeshes.forEach((mesh) => {
+                mesh.animateShow({
+                    duration: 3000
+                });
+            });
+        }
+
+    }
 
     changeModelColor(color: string) {
         baseObjectModel.object3d.children[0].children.forEach((obj: { traverse: (arg0: (itm: any) => void) => void; }, idx: any) => {
@@ -605,18 +809,18 @@ export default class ConfigMaptalks {
     clearMap() {
         if (css2dDomList.length) {
             css2dDomList.forEach((dom) => {
-              dom.removeEventListener("click", this.onPanelClick);
-              dom.remove();
+                dom.removeEventListener("click", this.onPanelClick);
+                dom.remove();
             });
             css2dDomList.length = 0;
-          }
-          if (samllIconList.length) {
+        }
+        if (samllIconList.length) {
             samllIconList.forEach((dom) => {
-              dom.removeEventListener("click", this.onSmallIconClick);
-              dom.remove();
+                dom.removeEventListener("click", this.onSmallIconClick);
+                dom.remove();
             });
             samllIconList.length = 0;
-          }
+        }
         if (threeLayer) {
             // @ts-ignore
             threeLayer.remove(baseObjectModel);
@@ -641,6 +845,12 @@ export default class ConfigMaptalks {
     }
     animation() {
         // threeLayer!._needsUpdate = !threeLayer!._needsUpdate;
+        if (!maptalksMap!.isInteracting()) {
+            threeLayer!._needsUpdate = !threeLayer!._needsUpdate;
+            if (threeLayer!._needsUpdate) {
+                threeLayer!.redraw();
+            }
+        }
         if (threeLayer!._needsUpdate) {
             threeLayer!.redraw();
         }

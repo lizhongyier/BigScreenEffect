@@ -137,12 +137,65 @@ onMounted(() => {
     case "5":
       initConfig().then(() => {
         window[secondNetwork].addBuildings().then(() => {
-          window[secondNetwork].addLabel()
+          window[secondNetwork].addLabel();
         });
       });
       break;
+    case "6":
+      initConfig().then(() => {
+        setTimeout(() => {
+          window[secondNetwork].initExtrudePolygon();
+        }, 2000);
+        // window[secondNetwork].addBuildings().then(() => {
+        //   window[secondNetwork].addLabel()
+        // });
+      });
+      break;
+    case "7":
+      initConfig().then(() => {
+        const params = {
+          add: true,
+          color: 'rgb(0,0,0)',
+          show: true,
+          opacity: 1,
+          altitude: 0,
+          lineColor: 'rgb(15,159,190)',
+          lineOpacity: 0.7,
+          animateShow: false,
+        };
+        setTimeout(() => {
+          window[secondNetwork].initBuildingOutLine();
+          gui.add(params, 'add').onChange(function () {
+                if (params.add) {
+                    window[secondNetwork].addBuildingOutlineMesh()
+                } else {
+                    window[secondNetwork].removeBuildingOutlineMesh()
+                }
+            });
+            gui.addColor(params, 'color').name('building color').onChange(function () {
+                window[secondNetwork].setBuildingColor(params.color)
+            });
+            gui.add(params, 'opacity', 0, 1).name('building opacity').onChange(function () {
+                window[secondNetwork].setBuildingOpacity(params.opacity)
+            });
+
+            gui.addColor(params, 'lineColor').name('line color').onChange(function () {
+                window[secondNetwork].setBuildingOutLineColor(params.lineColor)
+            });
+
+            gui.add(params, 'lineOpacity', 0, 1).onChange(function () {
+                window[secondNetwork].setBuildingOutLineOpacity(params.lineOpacity)
+            });
+            gui.add(params, 'altitude', 0, 300).onChange(function () {
+                window[secondNetwork].setBuildingOutLineAltitude(params.altitude)
+            });
+            gui.add(params,'animateShow').onChange(function () {
+                window[secondNetwork].setBuildingOutLineAnimate(params.animateShow)
+            });
+        }, 2000);
+      });
+      break;
   }
-  console.log(toRaw(router).currentRoute.value);
 });
 
 onBeforeUnmount(() => {
