@@ -15,3 +15,4 @@ declare module "@/three-plugin/jsm/loaders/GLTFLoader.js";
 declare module "@/utils/gl/maptalks/geojson/nysubways";
 declare module "@/utils/gl/maptalks/geoutil";
 declare module "dat.gui";
+declare module "mapbox-gl";

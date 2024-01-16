@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { onMounted, ref, reactive, toRaw, onBeforeUnmount } from "vue";
 import ConfigMap from "@/utils/maptalks/ConfigMaptalks";
+import ConfigMapbox from "@/utils/mapbox/ConfigMapbox";
+import "mapbox-gl/dist/mapbox-gl.css";
 import { useRouter } from "vue-router";
 import * as dat from "dat.gui";
 let gui: any = null;
@@ -10,6 +12,7 @@ const goBack = () => {};
 declare global {
   interface Window {
     secondNetwork: any;
+    configMapbox: any;
   }
 }
 const secondNetwork = "secondNetwork" as keyof typeof window;
@@ -21,6 +24,7 @@ const initConfig = () => {
     resolve();
   });
 };
+
 const initGUI = () => {
   if (!gui) {
     gui = new dat.GUI();
@@ -155,44 +159,69 @@ onMounted(() => {
       initConfig().then(() => {
         const params = {
           add: true,
-          color: 'rgb(0,0,0)',
+          color: "rgb(0,0,0)",
           show: true,
           opacity: 1,
           altitude: 0,
-          lineColor: 'rgb(15,159,190)',
+          lineColor: "rgb(15,159,190)",
           lineOpacity: 0.7,
           animateShow: false,
         };
         setTimeout(() => {
           window[secondNetwork].initBuildingOutLine();
-          gui.add(params, 'add').onChange(function () {
-                if (params.add) {
-                    window[secondNetwork].addBuildingOutlineMesh()
-                } else {
-                    window[secondNetwork].removeBuildingOutlineMesh()
-                }
+          gui.add(params, "add").onChange(function () {
+            if (params.add) {
+              window[secondNetwork].addBuildingOutlineMesh();
+            } else {
+              window[secondNetwork].removeBuildingOutlineMesh();
+            }
+          });
+          gui
+            .addColor(params, "color")
+            .name("building color")
+            .onChange(function () {
+              window[secondNetwork].setBuildingColor(params.color);
             });
-            gui.addColor(params, 'color').name('building color').onChange(function () {
-                window[secondNetwork].setBuildingColor(params.color)
-            });
-            gui.add(params, 'opacity', 0, 1).name('building opacity').onChange(function () {
-                window[secondNetwork].setBuildingOpacity(params.opacity)
+          gui
+            .add(params, "opacity", 0, 1)
+            .name("building opacity")
+            .onChange(function () {
+              window[secondNetwork].setBuildingOpacity(params.opacity);
             });
 
-            gui.addColor(params, 'lineColor').name('line color').onChange(function () {
-                window[secondNetwork].setBuildingOutLineColor(params.lineColor)
+          gui
+            .addColor(params, "lineColor")
+            .name("line color")
+            .onChange(function () {
+              window[secondNetwork].setBuildingOutLineColor(params.lineColor);
             });
 
-            gui.add(params, 'lineOpacity', 0, 1).onChange(function () {
-                window[secondNetwork].setBuildingOutLineOpacity(params.lineOpacity)
-            });
-            gui.add(params, 'altitude', 0, 300).onChange(function () {
-                window[secondNetwork].setBuildingOutLineAltitude(params.altitude)
-            });
-            gui.add(params,'animateShow').onChange(function () {
-                window[secondNetwork].setBuildingOutLineAnimate(params.animateShow)
-            });
+          gui.add(params, "lineOpacity", 0, 1).onChange(function () {
+            window[secondNetwork].setBuildingOutLineOpacity(params.lineOpacity);
+          });
+          gui.add(params, "altitude", 0, 300).onChange(function () {
+            window[secondNetwork].setBuildingOutLineAltitude(params.altitude);
+          });
+          gui.add(params, "animateShow").onChange(function () {
+            window[secondNetwork].setBuildingOutLineAnimate(params.animateShow);
+          });
         }, 2000);
+      });
+      break;
+    case "8":
+      window["configMapbox"] = new ConfigMapbox({
+        container: document.getElementById("map") as HTMLElement,
+      });
+      window["configMapbox"].initMap().then(() => {
+        window["configMapbox"].addHenanPolygon();
+      });
+      break;
+    case "9":
+      window["configMapbox"] = new ConfigMapbox({
+        container: document.getElementById("map") as HTMLElement,
+      });
+      window["configMapbox"].initMap().then(() => {
+        window["configMapbox"].addFlyLine();
       });
       break;
   }
