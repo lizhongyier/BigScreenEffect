@@ -85,6 +85,18 @@ const panelList = ref<PanelItem[]>([
     id: 9,
     tools: "mapbox,threebox",
   },
+  {
+    name: "扫光",
+    img: ref("/src/assets/img/10.png"),
+    id: 10,
+    tools: "threejs",
+  },
+  {
+    name: "地图扫光",
+    img: ref("/src/assets/img/11.png"),
+    id: 11,
+    tools: "maptalks,threejs",
+  },
 ]);
 const currentDate = ref(new Date());
 const panelStyle = reactive({

@@ -16,3 +16,4 @@ declare module "@/utils/gl/maptalks/geojson/nysubways";
 declare module "@/utils/gl/maptalks/geoutil";
 declare module "dat.gui";
 declare module "mapbox-gl";
+declare module "threebox-plugin";

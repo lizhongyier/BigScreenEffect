@@ -34,8 +34,8 @@ let layers = [
   },
 ];
 let localhost = window.location.origin;
-let animateTimer = null
-let tb = null
+let animateTimer: any = null
+let tb: any = null
 const poiSize = 200;
 const pulsingDot = {
   width: poiSize,

@@ -2,6 +2,8 @@
 import { onMounted, ref, reactive, toRaw, onBeforeUnmount } from "vue";
 import ConfigMap from "@/utils/maptalks/ConfigMaptalks";
 import ConfigMapbox from "@/utils/mapbox/ConfigMapbox";
+import ConfigMapbox2 from "@/utils/mapbox/ConfigMapbox2";
+import sweepLight from "@/utils/threeExample/sweepLight";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useRouter } from "vue-router";
 import * as dat from "dat.gui";
@@ -13,6 +15,8 @@ declare global {
   interface Window {
     secondNetwork: any;
     configMapbox: any;
+    configMapbox2: any;
+    sweepLight: any;
   }
 }
 const secondNetwork = "secondNetwork" as keyof typeof window;
@@ -222,6 +226,19 @@ onMounted(() => {
       });
       window["configMapbox"].initMap().then(() => {
         window["configMapbox"].addFlyLine();
+      });
+      break;
+    case "10":
+      window["sweepLight"] = new sweepLight({
+        container: document.getElementById("map") as HTMLElement,
+      });
+      break;
+    case "11":
+      window["configMapbox2"] = new ConfigMapbox2({
+        container: document.getElementById("map") as HTMLElement,
+      });
+      window["configMapbox2"].initMap().then(() => {
+        window["configMapbox2"].drawSweepLight()
       });
       break;
   }
